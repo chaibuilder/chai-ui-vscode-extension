@@ -1,8 +1,9 @@
 {
-  "name": "chai-ui-blocks-builder",
-  "displayName": "Chai UI Blocks Builder",
+  "name": "chai-ui-blocks-preview",
+  "displayName": "Chai Builder: Blocks Preview", 
   "description": "",
-  "version": "0.0.1",
+  "publisher": "chaibuilder",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.92.0"
   },
@@ -14,8 +15,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "chai-ui-blocks-builder.previewBlocks",
-        "title": "Preview Chai Blocks"
+        "command": "chai-ui-blocks-preview.previewBlocks",
+        "title": "Preview Chai Block"
       }
     ]
   },

@@ -1,145 +1,160 @@
-import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
+import * as vscode from "vscode";
+import * as path from "path";
+import * as fs from "fs";
 import { load } from "js-yaml";
 import getPalette from "tailwindcss-palette-generator";
-import { get } from 'lodash';
+import { get } from "lodash";
 
 let previewPanel: vscode.WebviewPanel | undefined;
 let currentDocument: vscode.TextDocument | undefined;
 let configWatcher: vscode.FileSystemWatcher | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-    let previewDisposable = vscode.commands.registerCommand('chai-ui-blocks-builder.previewBlocks', previewChaiBlocks);
+  let previewDisposable = vscode.commands.registerCommand(
+    "chai-ui-blocks-preview.previewBlocks",
+    previewChaiBlocks,
+  );
 
-    context.subscriptions.push(previewDisposable);
+  context.subscriptions.push(previewDisposable);
 
-    vscode.window.onDidChangeActiveTextEditor(editor => {
-        if (editor && editor.document.languageId === 'html') {
-            currentDocument = editor.document;
-            updatePreview();
-        }
-    });
-
-    vscode.workspace.onDidChangeTextDocument(event => {
-        if (currentDocument && event.document.uri === currentDocument.uri) {
-            updatePreview();
-        }
-    });
-
-    // Watch for changes in chai.config.json
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (workspaceFolders) {
-        const configPath = path.join(workspaceFolders[0].uri.fsPath, 'chai.config.json');
-        configWatcher = vscode.workspace.createFileSystemWatcher(configPath);
-
-        configWatcher.onDidChange(() => {
-            vscode.window.showInformationMessage('chai.config.json has changed. Updating preview...');
-            updatePreview();
-        });
-
-        configWatcher.onDidCreate(() => {
-            vscode.window.showInformationMessage('chai.config.json has been created. Updating preview...');
-            updatePreview();
-        });
-
-        configWatcher.onDidDelete(() => {
-            vscode.window.showInformationMessage('chai.config.json has been deleted. Reverting to default configuration...');
-            updatePreview();
-        });
-
-        context.subscriptions.push(configWatcher);
+  vscode.window.onDidChangeActiveTextEditor((editor) => {
+    if (editor && editor.document.languageId === "html") {
+      currentDocument = editor.document;
+      updatePreview();
     }
+  });
+
+  vscode.workspace.onDidChangeTextDocument((event) => {
+    if (currentDocument && event.document.uri === currentDocument.uri) {
+      updatePreview();
+    }
+  });
+
+  // Watch for changes in chai.config.json
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (workspaceFolders) {
+    const configPath = path.join(
+      workspaceFolders[0].uri.fsPath,
+      "chai.config.json",
+    );
+    configWatcher = vscode.workspace.createFileSystemWatcher(configPath);
+
+    configWatcher.onDidChange(() => {
+      vscode.window.showInformationMessage(
+        "chai.config.json has changed. Updating preview...",
+      );
+      updatePreview();
+    });
+
+    configWatcher.onDidCreate(() => {
+      vscode.window.showInformationMessage(
+        "chai.config.json has been created. Updating preview...",
+      );
+      updatePreview();
+    });
+
+    configWatcher.onDidDelete(() => {
+      vscode.window.showInformationMessage(
+        "chai.config.json has been deleted. Reverting to default configuration...",
+      );
+      updatePreview();
+    });
+
+    context.subscriptions.push(configWatcher);
+  }
 }
 
 function previewChaiBlocks() {
-    const editor = vscode.window.activeTextEditor;
-    if (editor) {
-        currentDocument = editor.document;
-        if (previewPanel) {
-            previewPanel.reveal(vscode.ViewColumn.Beside);
-        } else {
-            previewPanel = vscode.window.createWebviewPanel(
-                'chaiBlocksPreview',
-                'Chai Blocks Preview',
-                vscode.ViewColumn.Beside,
-                { enableScripts: true }
-            );
+  const editor = vscode.window.activeTextEditor;
+  if (editor) {
+    currentDocument = editor.document;
+    if (previewPanel) {
+      previewPanel.reveal(vscode.ViewColumn.Beside);
+    } else {
+      previewPanel = vscode.window.createWebviewPanel(
+        "chaiBlocksPreview",
+        "Chai Blocks Preview",
+        vscode.ViewColumn.Beside,
+        { enableScripts: true },
+      );
 
-            previewPanel.onDidDispose(() => {
-                previewPanel = undefined;
-            });
-        }
-
-        updatePreview();
+      previewPanel.onDidDispose(() => {
+        previewPanel = undefined;
+      });
     }
-}
 
+    updatePreview();
+  }
+}
 
 const getConfig = (): any => {
-    let config = {
-        bodyFont: "Lato",
-        headingFont: "Montserrat",
-        roundedCorners: 8,
-        primaryColor: "#942192",
-        secondaryColor: "#f002b8",
-        bodyBgDarkColor: "#031022",
-        bodyBgLightColor: "#fcfcfc",
-        bodyTextDarkColor: "#ffffff",
-        bodyTextLightColor: "#000000"
-    };
+  let config = {
+    bodyFont: "Lato",
+    headingFont: "Montserrat",
+    roundedCorners: 8,
+    primaryColor: "#942192",
+    secondaryColor: "#f002b8",
+    bodyBgDarkColor: "#031022",
+    bodyBgLightColor: "#fcfcfc",
+    bodyTextDarkColor: "#ffffff",
+    bodyTextLightColor: "#000000",
+  };
 
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (workspaceFolders) {
-        const configPath = path.join(workspaceFolders[0].uri.fsPath, 'chai.config.json');
-        if (fs.existsSync(configPath)) {
-            try {
-                const fileContent = fs.readFileSync(configPath, 'utf8');
-                const fileConfig = JSON.parse(fileContent);
-                config = { ...config, ...fileConfig };
-            } catch (error) {
-                console.error('Error reading chai.config.json:', error);
-            }
-        }
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (workspaceFolders) {
+    const configPath = path.join(
+      workspaceFolders[0].uri.fsPath,
+      "chai.config.json",
+    );
+    if (fs.existsSync(configPath)) {
+      try {
+        const fileContent = fs.readFileSync(configPath, "utf8");
+        const fileConfig = JSON.parse(fileContent);
+        config = { ...config, ...fileConfig };
+      } catch (error) {
+        console.error("Error reading chai.config.json:", error);
+      }
     }
-    return config;
-}
+  }
+  return config;
+};
 
 const getTailwindConfig = (): string => {
-    const config = getConfig();
-    const palette = getPalette([
-        { color: config.primaryColor, name: "primary" },
-        { color: config.secondaryColor, name: "secondary" },
-    ]);
+  const config = getConfig();
+  const palette = getPalette([
+    { color: config.primaryColor, name: "primary" },
+    { color: config.secondaryColor, name: "secondary" },
+  ]);
 
-    const colors: Record<string, string> = {
-        "bg-light": config.bodyBgLightColor,
-        "bg-dark": config.bodyBgDarkColor,
-        "text-dark": config.bodyTextDarkColor,
-        "text-light": config.bodyTextLightColor,
-    };
+  const colors: Record<string, string> = {
+    "bg-light": config.bodyBgLightColor,
+    "bg-dark": config.bodyBgDarkColor,
+    "text-dark": config.bodyTextDarkColor,
+    "text-light": config.bodyTextLightColor,
+  };
 
-    return JSON.stringify({
-        extend: {
-            container: {
-                center: true,
-                padding: "1rem",
-                screens: {
-                    "2xl": "1300px",
-                },
-            },
-            fontFamily: { heading: [config.headingFont], body: [config.bodyFont] },
-            borderRadius: { DEFAULT: `${config.roundedCorners}px` },
-            colors: { ...palette, ...colors },
+  return JSON.stringify({
+    extend: {
+      container: {
+        center: true,
+        padding: "1rem",
+        screens: {
+          "2xl": "1300px",
         },
-    });
+      },
+      fontFamily: { heading: [config.headingFont], body: [config.bodyFont] },
+      borderRadius: { DEFAULT: `${config.roundedCorners}px` },
+      colors: { ...palette, ...colors },
+    },
+  });
 };
 
 const getFonts = (options: any) => {
   const headingFont = options.headingFont;
   const bodyFont = options.bodyFont;
-  if (headingFont === bodyFont)
+  if (headingFont === bodyFont) {
     return `<link href="https://fonts.googleapis.com/css2?family=${headingFont.replace(" ", "+")}:wght@400;500;600;700&display=swap" rel="stylesheet">`;
+  }
 
   return `
     <link href="https://fonts.googleapis.com/css2?family=${headingFont.replace(" ", "+")}:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -147,7 +162,7 @@ const getFonts = (options: any) => {
   `;
 };
 
-const extractJSONObject = (htmlContent:string) => {
+const extractJSONObject = (htmlContent: string) => {
   const blockMeta = htmlContent.match(/---([\s\S]*?)---/);
   if (blockMeta) {
     try {
@@ -157,14 +172,17 @@ const extractJSONObject = (htmlContent:string) => {
   return {};
 };
 
-
 function updatePreview() {
-    if (previewPanel && currentDocument && currentDocument.languageId === 'html') {
-        const content = currentDocument.getText();
-        const metaData = extractJSONObject(content);    
-		const html = content.replace(/---([\s\S]*?)---/g, "");
-        const wrapperClasses = get(metaData, "previewWrapperClasses", "");
-        const wrappedContent = `
+  if (
+    previewPanel &&
+    currentDocument &&
+    currentDocument.languageId === "html"
+  ) {
+    const content = currentDocument.getText();
+    const metaData = extractJSONObject(content);
+    const html = content.replace(/---([\s\S]*?)---/g, "");
+    const wrapperClasses = get(metaData, "previewWrapperClasses", "");
+    const wrappedContent = `
 			<!DOCTYPE html>
 			<html lang="en" class="smooth-scroll" x-data="{darkMode: $persist(false)}" :class="{'dark': darkMode === true }">
 			<head>
@@ -231,8 +249,8 @@ function updatePreview() {
                 </body>
 			</html>`;
 
-        previewPanel.webview.html = wrappedContent;
-    }
+    previewPanel.webview.html = wrappedContent;
+  }
 }
 
 export function deactivate() {}
