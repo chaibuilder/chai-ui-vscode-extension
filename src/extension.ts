@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import { load } from "js-yaml";
 import getPalette from "tailwindcss-palette-generator";
+import { get } from 'lodash';
 
 let previewPanel: vscode.WebviewPanel | undefined;
 let currentDocument: vscode.TextDocument | undefined;
@@ -145,11 +147,23 @@ const getFonts = (options: any) => {
   `;
 };
 
+const extractJSONObject = (htmlContent:string) => {
+  const blockMeta = htmlContent.match(/---([\s\S]*?)---/);
+  if (blockMeta) {
+    try {
+      return load(blockMeta[1]);
+    } catch (er) {}
+  }
+  return {};
+};
+
 
 function updatePreview() {
     if (previewPanel && currentDocument && currentDocument.languageId === 'html') {
         const content = currentDocument.getText();
+        const metaData = extractJSONObject(content);    
 		const html = content.replace(/---([\s\S]*?)---/g, "");
+        const wrapperClasses = get(metaData, "previewWrapperClasses", "");
         const wrappedContent = `
 			<!DOCTYPE html>
 			<html lang="en" class="smooth-scroll" x-data="{darkMode: $persist(false)}" :class="{'dark': darkMode === true }">
@@ -208,7 +222,9 @@ function updatePreview() {
                         <span x-html="darkMode ? 'Switch to light mode' : 'Switch to dark mode'"></span>
                     </button>
                 </div>
-                ${html}
+                <div class="${wrapperClasses}">
+                    ${html}
+                </div>
                 <!-- Alpine Plugins -->
                 <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
                 <script src="https:///unpkg.com/alpinejs" defer></script>
